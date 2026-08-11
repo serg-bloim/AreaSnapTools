@@ -1,0 +1,11 @@
+﻿{
+	"id": "AxisConstraint",
+	"display_name": "Axis Constraint",
+	"version": "0.1.1a",
+	"primary_dlls": ["0Harmony.dll", "AxisConstraint.dll" ],
+	"min_game_version": "0.8.5",
+	"max_verified_game_version": "0.8.6",
+	"non_locking_dll_load": true,
+	"can_add_to_saved_game": true,
+	"can_remove_from_saved_game": true
+}
