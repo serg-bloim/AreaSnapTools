@@ -9,55 +9,100 @@ using Mafi.Core.Console;
 using Mafi.Core.Entities.Static;
 using Mafi.Core.Products;
 using Mafi.Core.World;
+using Mafi.Numerics;
 
 namespace AxisConstraint;
-[HarmonyPatchCategory(AxisConstraint.HARMONY_PATCH_CATEGORY)]
-[HarmonyPatch(typeof(BattleShip))]
-[HarmonyPatch(nameof(BattleShip.TryUnloadCargo))]
-public class PatchBattleShip
-{
-    public static IGameConsole console;
 
-    private static MethodInfo removeBufferIfEmpty =
-        AccessTools.Method(typeof(BattleShip), "removeBufferIfEmpty");
-    static bool Prefix(
-        ref BattleShip __instance,
-        ref ProductQuantity __result,
-        Quantity maxQuantity,
-        IReadOnlySet<ProductProto> productsToSkip)
+[HarmonyPatchCategory(AxisConstraint.HARMONY_PATCH_CATEGORY)]
+[HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateIdle")]
+public class PatchPolygonEditState_updateIdle
+{
+    internal class State
     {
-        try
-        {
-            __result = MethodReplacement(__instance, maxQuantity, productsToSkip);
-            return false;
-        }
-        catch(Exception e)
-        {
-            Log.Exception(e, "Error during a method patch(Mafi.Core.World.BattleShip.TryUnloadCargo), rolling back to the original method.");
-            return true;
-        }
+        public int activeVertexIndex = -1;
     }
 
-    private static ProductQuantity MethodReplacement(BattleShip battleShip, Quantity maxQuantity, IReadOnlySet<ProductProto> productsToSkip)
+    static void Prefix(
+        Vector2f cursor,
+        bool primaryDown,
+        object __instance,
+        ref State __state
+    )
     {
+        __state = new State();
+        if (primaryDown)
         {
-            IProductBuffer buffer;
-            try
-            {
-                buffer = battleShip.Cargo.Values
-                    .Where(pb => !productsToSkip.Contains(pb.Product))
-                    .MinElement(pb => pb.Quantity);
-            }
-            catch (Exception e)
-            {
-                return ProductQuantity.None;
-            }
+            // console.WriteLine("test");
+            __state.activeVertexIndex = get_activeVertexIndex(__instance);
+            // console.WriteLine($"activeVertexIndex = {__state.activeVertexIndex}");
+            // Log.Info("test");
+        }
 
-            Quantity quantity = buffer.RemoveAsMuchAs(maxQuantity);
-            removeBufferIfEmpty.Invoke(battleShip, [buffer]);
-            if (quantity.IsPositive)
-                return new ProductQuantity(buffer.Product, quantity);
-            throw new Exception("Patched method could not find a positive quantity. Let the original method run");
+
+        // console.WriteLine("It worked");
+    }
+
+    private static int get_activeVertexIndex(object o)
+    {
+        var propertyGetter = AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveVertexIndex");
+        return (int)propertyGetter.Invoke(o, []);
+    }
+
+    private static Vector2f startingPoint = Vector2f.Zero;
+
+    static void Postfix(
+        Vector2f cursor,
+        bool primaryDown,
+        object __instance,
+        Polygon2fMutable ___Polygon,
+        ref State __state)
+    {
+        if (primaryDown)
+        {
+            var activeVertexIndex = get_activeVertexIndex(__instance);
+            AxisConstraint.console.WriteLine($"Before ({__state.activeVertexIndex}) After ({activeVertexIndex})");
+            if (activeVertexIndex >= 0)
+            {
+                startingPoint = ___Polygon[activeVertexIndex];
+            }
+        }
+        else
+        {
+            startingPoint = Vector2f.Zero;
+        }
+    }
+}
+
+[HarmonyPatchCategory(AxisConstraint.HARMONY_PATCH_CATEGORY)]
+[HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateTranslateVertex")]
+public class PatchPolygonEditState_updateTranslateVertex
+{
+    static void Prefix(
+        ref Vector2f cursor,
+        object __instance
+    )
+    {
+        cursor = new Vector2f(cursor.X.RoundToIntMultipleOf(4), cursor.Y.RoundToIntMultipleOf(4));
+    }
+
+    private static int get_activeVertexIndex(object o)
+    {
+        var propertyGetter = AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveVertexIndex");
+        return (int)propertyGetter.Invoke(o, []);
+    }
+
+    private static Vector2f startingPoint = Vector2f.Zero;
+
+    static void Postfix(
+        Vector2f cursor,
+        object __instance,
+        Polygon2fMutable ___Polygon)
+    {
+        var activeVertexIndex = get_activeVertexIndex(__instance);
+        if (activeVertexIndex >= 0)
+        {
+            AxisConstraint.console.WriteLine($"Cursor: {cursor}, point: {___Polygon[activeVertexIndex]}");
+            startingPoint = ___Polygon[activeVertexIndex];
         }
     }
 }
