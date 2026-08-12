@@ -19,59 +19,29 @@ namespace AxisConstraint;
 [HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateIdle")]
 public class PatchPolygonEditState_updateIdle
 {
-    internal class State
-    {
-        public int activeVertexIndex = -1;
-    }
-
-    static void Prefix(
-        Vector2f cursor,
+    static void Postfix(
         bool primaryDown,
         object __instance,
-        ref State __state
-    )
+        Polygon2fMutable ___Polygon)
     {
-        __state = new State();
         if (primaryDown)
         {
-            // console.WriteLine("test");
-            __state.activeVertexIndex = get_activeVertexIndex(__instance);
-            // console.WriteLine($"activeVertexIndex = {__state.activeVertexIndex}");
-            // Log.Info("test");
+            var activeVertexIndex = get_activeVertexIndex(__instance);
+            if (activeVertexIndex >= 0)
+            {
+                AxisConstraint.startingPoint = ___Polygon[activeVertexIndex];
+            }
         }
-
-
-        // console.WriteLine("It worked");
+        else
+        {
+            AxisConstraint.startingPoint = Vector2f.Zero;
+        }
     }
 
     private static int get_activeVertexIndex(object o)
     {
         var propertyGetter = AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveVertexIndex");
         return (int)propertyGetter.Invoke(o, []);
-    }
-
-    public static Vector2f startingPoint = Vector2f.Zero;
-
-    static void Postfix(
-        Vector2f cursor,
-        bool primaryDown,
-        object __instance,
-        Polygon2fMutable ___Polygon,
-        ref State __state)
-    {
-        if (primaryDown)
-        {
-            var activeVertexIndex = get_activeVertexIndex(__instance);
-            AxisConstraint.console.WriteLine($"Before ({__state.activeVertexIndex}) After ({activeVertexIndex})");
-            if (activeVertexIndex >= 0)
-            {
-                startingPoint = ___Polygon[activeVertexIndex];
-            }
-        }
-        else
-        {
-            startingPoint = Vector2f.Zero;
-        }
     }
 }
 
@@ -85,8 +55,7 @@ public class PatchPolygonEditState_updateTranslateVertex
         KeyCode.LeftControl, KeyCode.RightControl);
 
     static void Prefix(
-        ref Vector2f cursor,
-        object __instance
+        ref Vector2f cursor
     )
     {
         if (IsCtrlDown())
@@ -95,14 +64,14 @@ public class PatchPolygonEditState_updateTranslateVertex
         }
         if (IsShiftDown())
         {
-            var diff = cursor - PatchPolygonEditState_updateIdle.startingPoint;
+            var diff = cursor - AxisConstraint.startingPoint;
             if (diff.X.Abs() > diff.Y.Abs())
             {
-                cursor = new Vector2f(cursor.X, PatchPolygonEditState_updateIdle.startingPoint.Y);
+                cursor = new Vector2f(cursor.X, AxisConstraint.startingPoint.Y);
             }
             else
             {
-                cursor = new Vector2f(PatchPolygonEditState_updateIdle.startingPoint.X, cursor.Y);
+                cursor = new Vector2f(AxisConstraint.startingPoint.X, cursor.Y);
             }
         }
     }
