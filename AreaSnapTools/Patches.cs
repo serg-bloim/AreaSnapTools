@@ -34,8 +34,11 @@ class Patches
     [HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateIdle")]
     public class PatchPolygonEditState_updateIdle
     {
-        private static readonly MethodInfo ActiveVertexIndexProprtyGetter = AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveVertexIndex");
-        private static readonly MethodInfo ActiveEdgeIndexProprtyGetter = AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveEdgeIndex");
+        private static readonly MethodInfo ActiveVertexIndexProprtyGetter =
+            AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveVertexIndex");
+
+        private static readonly MethodInfo ActiveEdgeIndexProprtyGetter =
+            AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveEdgeIndex");
 
         static void Postfix(
             bool primaryDown,
@@ -44,23 +47,30 @@ class Patches
             Vector2f cursor,
             Polygon2fMutable ___Polygon)
         {
-            if (primaryDown && __result)
+            try
             {
-                var startingPointIndex = getActiveVertexIndex(__instance);
-                if (startingPointIndex < 0)
+                if (primaryDown && __result)
                 {
-                    startingPointIndex = getActiveEdgeIndex(__instance);
+                    var startingPointIndex = getActiveVertexIndex(__instance);
                     if (startingPointIndex < 0)
-                        startingPointIndex = 0;
-                }
+                    {
+                        startingPointIndex = getActiveEdgeIndex(__instance);
+                        if (startingPointIndex < 0)
+                            startingPointIndex = 0;
+                    }
 
-                startingPoint = ___Polygon[startingPointIndex];
-                startingPointOffset = startingPoint - cursor;
+                    startingPoint = ___Polygon[startingPointIndex];
+                    startingPointOffset = startingPoint - cursor;
+                }
+                else
+                {
+                    startingPoint = Vector2f.Zero;
+                    startingPointOffset = Vector2f.Zero;
+                }
             }
-            else
+            catch (Exception e)
             {
-                startingPoint = Vector2f.Zero;
-                startingPointOffset = Vector2f.Zero;
+                Log.Exception(e, "AreaSnapTools Patches:updateIdle:Postfix failed");
             }
         }
 
@@ -79,26 +89,31 @@ class Patches
     [HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateTranslateVertex")]
     public class PatchPolygonEditState_updateTranslateVertex
     {
-        static void Prefix(
-            ref Vector2f cursor
-        )
+        static void Prefix(ref Vector2f cursor)
         {
-            if (IsCtrlDown())
+            try
             {
-                cursor = new Vector2f(cursor.X.RoundToIntMultipleOf(4), cursor.Y.RoundToIntMultipleOf(4));
+                if (IsCtrlDown())
+                {
+                    cursor = new Vector2f(cursor.X.RoundToIntMultipleOf(4), cursor.Y.RoundToIntMultipleOf(4));
+                }
+
+                if (IsShiftDown())
+                {
+                    var diff = cursor - startingPoint;
+                    if (diff.X.Abs() > diff.Y.Abs())
+                    {
+                        cursor = new Vector2f(cursor.X, startingPoint.Y);
+                    }
+                    else
+                    {
+                        cursor = new Vector2f(startingPoint.X, cursor.Y);
+                    }
+                }
             }
-    
-            if (IsShiftDown())
+            catch (Exception e)
             {
-                var diff = cursor - startingPoint;
-                if (diff.X.Abs() > diff.Y.Abs())
-                {
-                    cursor = new Vector2f(cursor.X, startingPoint.Y);
-                }
-                else
-                {
-                    cursor = new Vector2f(startingPoint.X, cursor.Y);
-                }
+                Log.Exception(e, "AreaSnapTools Patches:updateTranslateVertex:Prefix failed");
             }
         }
     }
@@ -113,35 +128,41 @@ class Patches
             yield return AccessTools.Method(type, "updateTranslateEdge");
             yield return AccessTools.Method(type, "updateTranslatePolygon");
         }
-        static void Prefix(
-            ref Vector2f cursor
-        )
+
+        static void Prefix(ref Vector2f cursor, MethodInfo __originalMethod)
         {
-            if (IsCtrlDown())
+            try
             {
-                var actualStartingPointPos = cursor + startingPointOffset;
-                var correctedStartingPointPos = new Vector2f(actualStartingPointPos.X.RoundToIntMultipleOf(4),
-                    actualStartingPointPos.Y.RoundToIntMultipleOf(4));
-                var correction = correctedStartingPointPos - actualStartingPointPos;
-                cursor += correction;
+                if (IsCtrlDown())
+                {
+                    var actualStartingPointPos = cursor + startingPointOffset;
+                    var correctedStartingPointPos = new Vector2f(actualStartingPointPos.X.RoundToIntMultipleOf(4),
+                        actualStartingPointPos.Y.RoundToIntMultipleOf(4));
+                    var correction = correctedStartingPointPos - actualStartingPointPos;
+                    cursor += correction;
+                }
+
+                if (IsShiftDown())
+                {
+                    var actualStartingPointPos = cursor + startingPointOffset;
+                    var diff = actualStartingPointPos - startingPoint;
+                    if (diff.X.Abs() > diff.Y.Abs())
+                    {
+                        diff = diff.SetY(0);
+                    }
+                    else
+                    {
+                        diff = diff.SetX(0);
+                    }
+
+                    var correctedStartingPointPos = startingPoint + diff;
+                    var correction = correctedStartingPointPos - actualStartingPointPos;
+                    cursor += correction;
+                }
             }
-
-            if (IsShiftDown())
+            catch (Exception e)
             {
-                var actualStartingPointPos = cursor + startingPointOffset;
-                var diff = actualStartingPointPos - startingPoint;
-                if (diff.X.Abs() > diff.Y.Abs())
-                {
-                    diff = diff.SetY(0);
-                }
-                else
-                {
-                    diff = diff.SetX(0);
-                }
-
-                var correctedStartingPointPos = startingPoint + diff;
-                var correction = correctedStartingPointPos - actualStartingPointPos;
-                cursor += correction;
+                Log.Exception(e, $"AreaSnapTools Patches:{__originalMethod.Name}:Prefix failed");
             }
         }
     }
