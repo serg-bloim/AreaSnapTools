@@ -6,6 +6,7 @@ using Mafi.Core.Console;
 using Mafi.Core.Game;
 using Mafi.Core.Mods;
 using Mafi.Core.Prototypes;
+using Mafi.Unity.InputControl;
 
 namespace AxisConstraint;
 
@@ -13,6 +14,7 @@ public sealed class AxisConstraint : IMod
 {
     public const string HARMONY_PATCH_CATEGORY = "AxisConstraint";
     private readonly Harmony harm = new("AxisConstraint");
+    public static ShortcutsManager shortcutsManager;
     public static IGameConsole console;
 
     // Mod constructor will be called on mod loading.
@@ -49,6 +51,7 @@ public sealed class AxisConstraint : IMod
 
     public void Initialize(DependencyResolver resolver, bool gameWasLoaded)
     {
+        shortcutsManager = resolver.Resolve<ShortcutsManager>();
         Log.Info($"AxisConstraint: v1");
         var console = resolver.Resolve<IGameConsole>();
         AxisConstraint.console = resolver.Resolve<IGameConsole>();

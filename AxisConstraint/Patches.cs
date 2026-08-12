@@ -10,6 +10,8 @@ using Mafi.Core.Entities.Static;
 using Mafi.Core.Products;
 using Mafi.Core.World;
 using Mafi.Numerics;
+using Mafi.Unity.InputControl;
+using UnityEngine;
 
 namespace AxisConstraint;
 
@@ -77,34 +79,40 @@ public class PatchPolygonEditState_updateIdle
 [HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateTranslateVertex")]
 public class PatchPolygonEditState_updateTranslateVertex
 {
+    private static KeyBindings anyShiftKey = KeyBindings.FromKeys(KbCategory.Tools, ShortcutMode.Game,
+        KeyCode.LeftShift, KeyCode.RightShift);
+    private static KeyBindings anyCtrlKey = KeyBindings.FromKeys(KbCategory.Tools, ShortcutMode.Game,
+        KeyCode.LeftControl, KeyCode.RightControl);
+
     static void Prefix(
         ref Vector2f cursor,
         object __instance
     )
     {
-        var diff = cursor - PatchPolygonEditState_updateIdle.startingPoint;
-        if (diff.X.Abs() > diff.Y.Abs())
+        if (IsCtrlDown())
         {
-            cursor = new Vector2f(cursor.X, PatchPolygonEditState_updateIdle.startingPoint.Y);
+            cursor = new Vector2f(cursor.X.RoundToIntMultipleOf(4), cursor.Y.RoundToIntMultipleOf(4));
         }
-        else
+        if (IsShiftDown())
         {
-            cursor = new Vector2f(PatchPolygonEditState_updateIdle.startingPoint.X, cursor.Y);
+            var diff = cursor - PatchPolygonEditState_updateIdle.startingPoint;
+            if (diff.X.Abs() > diff.Y.Abs())
+            {
+                cursor = new Vector2f(cursor.X, PatchPolygonEditState_updateIdle.startingPoint.Y);
+            }
+            else
+            {
+                cursor = new Vector2f(PatchPolygonEditState_updateIdle.startingPoint.X, cursor.Y);
+            }
         }
-        // cursor = new Vector2f(cursor.X.RoundToIntMultipleOf(4), cursor.Y.RoundToIntMultipleOf(4));
     }
 
-    private static int get_activeVertexIndex(object o)
+    private static bool IsShiftDown()
     {
-        var propertyGetter = AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveVertexIndex");
-        return (int)propertyGetter.Invoke(o, []);
+        return AxisConstraint.shortcutsManager.IsOn(anyShiftKey);
     }
-
-    static void Postfix(
-        Vector2f cursor,
-        object __instance,
-        Polygon2fMutable ___Polygon)
+    private static bool IsCtrlDown()
     {
-
+        return AxisConstraint.shortcutsManager.IsOn(anyCtrlKey);
     }
 }
