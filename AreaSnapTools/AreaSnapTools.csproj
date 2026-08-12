@@ -9,7 +9,7 @@
 		<!-- Version, AssemblyVersion and AssemblyFileVersion is automatically generated from 'manifest.json' -->
 		<COI_MODS>$(APPDATA)\Captain of Industry\Mods</COI_MODS>
 		<!-- When the name of unity project is changed, the destination folder must be adjusted -->
-		<UnityProjectName>AxisConstraint.Unity</UnityProjectName>
+		<UnityProjectName>AreaSnapTools.Unity</UnityProjectName>
 
 		<!-- Set to true to automatically deploy to the mods folder on build -->
 		<DeployToModsFolder>true</DeployToModsFolder>
@@ -17,8 +17,8 @@
 		<!-- Require DLC -->
 		<RequiresSupporterDlc>false</RequiresSupporterDlc>
 		<RequiresTrainsDlc>false</RequiresTrainsDlc>
-		<AssemblyName>AxisConstraint</AssemblyName>
-		<RootNamespace>AxisConstraint</RootNamespace>
+		<AssemblyName>AreaSnapTools</AssemblyName>
+		<RootNamespace>AreaSnapTools</RootNamespace>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

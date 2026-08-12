@@ -1,8 +1,8 @@
 ﻿{
-	"id": "AxisConstraint",
+	"id": "AreaSnapTools",
 	"display_name": "Axis Constraint",
 	"version": "0.1.1a",
-	"primary_dlls": ["0Harmony.dll", "AxisConstraint.dll" ],
+	"primary_dlls": ["0Harmony.dll", "AreaSnapTools.dll" ],
 	"min_game_version": "0.8.5",
 	"max_verified_game_version": "0.8.6",
 	"non_locking_dll_load": true,

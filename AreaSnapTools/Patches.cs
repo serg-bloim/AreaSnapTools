@@ -13,9 +13,9 @@ using Mafi.Numerics;
 using Mafi.Unity.InputControl;
 using UnityEngine;
 
-namespace AxisConstraint;
+namespace AreaSnapTools;
 
-[HarmonyPatchCategory(AxisConstraint.HARMONY_PATCH_CATEGORY)]
+[HarmonyPatchCategory(AreaSnapTools.HARMONY_PATCH_CATEGORY)]
 [HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateIdle")]
 public class PatchPolygonEditState_updateIdle
 {
@@ -29,12 +29,12 @@ public class PatchPolygonEditState_updateIdle
             var activeVertexIndex = get_activeVertexIndex(__instance);
             if (activeVertexIndex >= 0)
             {
-                AxisConstraint.startingPoint = ___Polygon[activeVertexIndex];
+                AreaSnapTools.startingPoint = ___Polygon[activeVertexIndex];
             }
         }
         else
         {
-            AxisConstraint.startingPoint = Vector2f.Zero;
+            AreaSnapTools.startingPoint = Vector2f.Zero;
         }
     }
 
@@ -45,7 +45,7 @@ public class PatchPolygonEditState_updateIdle
     }
 }
 
-[HarmonyPatchCategory(AxisConstraint.HARMONY_PATCH_CATEGORY)]
+[HarmonyPatchCategory(AreaSnapTools.HARMONY_PATCH_CATEGORY)]
 [HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateTranslateVertex")]
 public class PatchPolygonEditState_updateTranslateVertex
 {
@@ -64,24 +64,24 @@ public class PatchPolygonEditState_updateTranslateVertex
         }
         if (IsShiftDown())
         {
-            var diff = cursor - AxisConstraint.startingPoint;
+            var diff = cursor - AreaSnapTools.startingPoint;
             if (diff.X.Abs() > diff.Y.Abs())
             {
-                cursor = new Vector2f(cursor.X, AxisConstraint.startingPoint.Y);
+                cursor = new Vector2f(cursor.X, AreaSnapTools.startingPoint.Y);
             }
             else
             {
-                cursor = new Vector2f(AxisConstraint.startingPoint.X, cursor.Y);
+                cursor = new Vector2f(AreaSnapTools.startingPoint.X, cursor.Y);
             }
         }
     }
 
     private static bool IsShiftDown()
     {
-        return AxisConstraint.shortcutsManager.IsOn(anyShiftKey);
+        return AreaSnapTools.shortcutsManager.IsOn(anyShiftKey);
     }
     private static bool IsCtrlDown()
     {
-        return AxisConstraint.shortcutsManager.IsOn(anyCtrlKey);
+        return AreaSnapTools.shortcutsManager.IsOn(anyCtrlKey);
     }
 }

@@ -8,17 +8,17 @@ using Mafi.Core.Mods;
 using Mafi.Core.Prototypes;
 using Mafi.Unity.InputControl;
 
-namespace AxisConstraint;
+namespace AreaSnapTools;
 
-public sealed class AxisConstraint : IMod
+public sealed class AreaSnapTools : IMod
 {
-    public const string HARMONY_PATCH_CATEGORY = "AxisConstraint";
-    private readonly Harmony harm = new("AxisConstraint");
+    public const string HARMONY_PATCH_CATEGORY = "AreaSnapTools";
+    private readonly Harmony harm = new("AreaSnapTools");
     public static Vector2f startingPoint;
     public static ShortcutsManager shortcutsManager;
 
     // Mod constructor will be called on mod loading.
-    public AxisConstraint(ModManifest manifest) : base()
+    public AreaSnapTools(ModManifest manifest) : base()
     {
         Manifest = manifest;
         JsonConfig = new ModJsonConfig(this);
@@ -27,16 +27,16 @@ public sealed class AxisConstraint : IMod
 
     public void RegisterPrototypes(ProtoRegistrator registrator)
     {
-        Log.Info("AxisConstraint: applying patches");
+        Log.Info("AreaSnapTools: applying patches");
         try
         {
             harm.UnpatchCategory(HARMONY_PATCH_CATEGORY);
             harm.PatchCategory(HARMONY_PATCH_CATEGORY);
-            Log.Info("AxisConstraint: patching complete");
+            Log.Info("AreaSnapTools: patching complete");
         }
         catch (Exception e)
         {
-            Log.Exception(e, "AxisConstraint: failed to patch");
+            Log.Exception(e, "AreaSnapTools: failed to patch");
         }
     }
 
@@ -46,7 +46,7 @@ public sealed class AxisConstraint : IMod
 
     public void EarlyInit(DependencyResolver resolver)
     {
-        Log.Info($"AxisConstraint: v2");
+        Log.Info($"AreaSnapTools: v1");
     }
 
     public void Initialize(DependencyResolver resolver, bool gameWasLoaded)
