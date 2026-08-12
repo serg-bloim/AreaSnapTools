@@ -48,7 +48,7 @@ public class PatchPolygonEditState_updateIdle
         return (int)propertyGetter.Invoke(o, []);
     }
 
-    private static Vector2f startingPoint = Vector2f.Zero;
+    public static Vector2f startingPoint = Vector2f.Zero;
 
     static void Postfix(
         Vector2f cursor,
@@ -82,7 +82,16 @@ public class PatchPolygonEditState_updateTranslateVertex
         object __instance
     )
     {
-        cursor = new Vector2f(cursor.X.RoundToIntMultipleOf(4), cursor.Y.RoundToIntMultipleOf(4));
+        var diff = cursor - PatchPolygonEditState_updateIdle.startingPoint;
+        if (diff.X.Abs() > diff.Y.Abs())
+        {
+            cursor = new Vector2f(cursor.X, PatchPolygonEditState_updateIdle.startingPoint.Y);
+        }
+        else
+        {
+            cursor = new Vector2f(PatchPolygonEditState_updateIdle.startingPoint.X, cursor.Y);
+        }
+        // cursor = new Vector2f(cursor.X.RoundToIntMultipleOf(4), cursor.Y.RoundToIntMultipleOf(4));
     }
 
     private static int get_activeVertexIndex(object o)
@@ -91,18 +100,11 @@ public class PatchPolygonEditState_updateTranslateVertex
         return (int)propertyGetter.Invoke(o, []);
     }
 
-    private static Vector2f startingPoint = Vector2f.Zero;
-
     static void Postfix(
         Vector2f cursor,
         object __instance,
         Polygon2fMutable ___Polygon)
     {
-        var activeVertexIndex = get_activeVertexIndex(__instance);
-        if (activeVertexIndex >= 0)
-        {
-            AxisConstraint.console.WriteLine($"Cursor: {cursor}, point: {___Polygon[activeVertexIndex]}");
-            startingPoint = ___Polygon[activeVertexIndex];
-        }
+
     }
 }
