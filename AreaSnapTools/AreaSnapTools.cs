@@ -2,7 +2,6 @@
 using HarmonyLib;
 using Mafi;
 using Mafi.Collections;
-using Mafi.Core.Console;
 using Mafi.Core.Game;
 using Mafi.Core.Mods;
 using Mafi.Core.Prototypes;
@@ -14,8 +13,6 @@ public sealed class AreaSnapTools : IMod
 {
     public const string HARMONY_PATCH_CATEGORY = "AreaSnapTools";
     private readonly Harmony harm = new("AreaSnapTools");
-    public static Vector2f startingPointOffset;
-    public static Vector2f startingPoint;
     public static ShortcutsManager shortcutsManager;
 
     // Mod constructor will be called on mod loading.

@@ -1,15 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using Mafi;
-using Mafi.Collections;
-using Mafi.Core;
-using Mafi.Core.Console;
-using Mafi.Core.Entities.Static;
-using Mafi.Core.Products;
-using Mafi.Core.World;
 using Mafi.Numerics;
 using Mafi.Unity.InputControl;
 using UnityEngine;
@@ -18,6 +11,9 @@ namespace AreaSnapTools;
 
 class Patches
 {
+    private static Vector2f startingPoint;
+    private static Vector2f startingPointOffset;
+
     private static KeyBindings anyShiftKey = KeyBindings.FromKeys(KbCategory.Tools, ShortcutMode.Game,
         KeyCode.LeftShift, KeyCode.RightShift);
 
@@ -38,6 +34,9 @@ class Patches
     [HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateIdle")]
     public class PatchPolygonEditState_updateIdle
     {
+        private static readonly MethodInfo ActiveVertexIndexProprtyGetter = AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveVertexIndex");
+        private static readonly MethodInfo ActiveEdgeIndexProprtyGetter = AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveEdgeIndex");
+
         static void Postfix(
             bool primaryDown,
             object __instance,
@@ -47,75 +46,70 @@ class Patches
         {
             if (primaryDown && __result)
             {
-                var startingPointIndex = get_activeVertexIndex(__instance);
+                var startingPointIndex = getActiveVertexIndex(__instance);
                 if (startingPointIndex < 0)
                 {
-                    startingPointIndex = get_activeEdgeIndex(__instance);
+                    startingPointIndex = getActiveEdgeIndex(__instance);
                     if (startingPointIndex < 0)
                         startingPointIndex = 0;
                 }
 
-                AreaSnapTools.startingPoint = ___Polygon[startingPointIndex];
-                AreaSnapTools.startingPointOffset = AreaSnapTools.startingPoint - cursor;
+                startingPoint = ___Polygon[startingPointIndex];
+                startingPointOffset = startingPoint - cursor;
             }
             else
             {
-                AreaSnapTools.startingPoint = Vector2f.Zero;
-                AreaSnapTools.startingPointOffset = Vector2f.Zero;
+                startingPoint = Vector2f.Zero;
+                startingPointOffset = Vector2f.Zero;
             }
         }
 
-        private static int get_activeVertexIndex(object o)
+        private static int getActiveVertexIndex(object o)
         {
-            var propertyGetter =
-                AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveVertexIndex");
-            return (int)propertyGetter.Invoke(o, []);
+            return (int)ActiveVertexIndexProprtyGetter.Invoke(o, []);
         }
 
-        private static int get_activeEdgeIndex(object o)
+        private static int getActiveEdgeIndex(object o)
         {
-            var propertyGetter =
-                AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveEdgeIndex");
-            return (int)propertyGetter.Invoke(o, []);
+            return (int)ActiveEdgeIndexProprtyGetter.Invoke(o, []);
         }
     }
 
-    // [HarmonyPatchCategory(AreaSnapTools.HARMONY_PATCH_CATEGORY)]
-    // [HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateTranslateVertex")]
-    // public class PatchPolygonEditState_updateTranslateVertex
-    // {
-    //     static void Prefix(
-    //         ref Vector2f cursor
-    //     )
-    //     {
-    //         if (IsCtrlDown())
-    //         {
-    //             cursor = new Vector2f(cursor.X.RoundToIntMultipleOf(4), cursor.Y.RoundToIntMultipleOf(4));
-    //         }
-    //
-    //         if (IsShiftDown())
-    //         {
-    //             var diff = cursor - AreaSnapTools.startingPoint;
-    //             if (diff.X.Abs() > diff.Y.Abs())
-    //             {
-    //                 cursor = new Vector2f(cursor.X, AreaSnapTools.startingPoint.Y);
-    //             }
-    //             else
-    //             {
-    //                 cursor = new Vector2f(AreaSnapTools.startingPoint.X, cursor.Y);
-    //             }
-    //         }
-    //     }
-    // }
+    [HarmonyPatchCategory(AreaSnapTools.HARMONY_PATCH_CATEGORY)]
+    [HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateTranslateVertex")]
+    public class PatchPolygonEditState_updateTranslateVertex
+    {
+        static void Prefix(
+            ref Vector2f cursor
+        )
+        {
+            if (IsCtrlDown())
+            {
+                cursor = new Vector2f(cursor.X.RoundToIntMultipleOf(4), cursor.Y.RoundToIntMultipleOf(4));
+            }
+    
+            if (IsShiftDown())
+            {
+                var diff = cursor - startingPoint;
+                if (diff.X.Abs() > diff.Y.Abs())
+                {
+                    cursor = new Vector2f(cursor.X, startingPoint.Y);
+                }
+                else
+                {
+                    cursor = new Vector2f(startingPoint.X, cursor.Y);
+                }
+            }
+        }
+    }
 
     [HarmonyPatchCategory(AreaSnapTools.HARMONY_PATCH_CATEGORY)]
     [HarmonyPatch]
-    public class PatchPolygonEditState_updateTranslateEdge
+    public class PatchPolygonEditState_updateTranslateEdgeAndPolygon
     {
         static IEnumerable<MethodBase> TargetMethods()
         {
             Type type = AccessTools.TypeByName("Mafi.Unity.Ui.Controllers.PolygonEditState");
-            yield return AccessTools.Method(type, "updateTranslateVertex");
             yield return AccessTools.Method(type, "updateTranslateEdge");
             yield return AccessTools.Method(type, "updateTranslatePolygon");
         }
@@ -125,7 +119,7 @@ class Patches
         {
             if (IsCtrlDown())
             {
-                var actualStartingPointPos = cursor + AreaSnapTools.startingPointOffset;
+                var actualStartingPointPos = cursor + startingPointOffset;
                 var correctedStartingPointPos = new Vector2f(actualStartingPointPos.X.RoundToIntMultipleOf(4),
                     actualStartingPointPos.Y.RoundToIntMultipleOf(4));
                 var correction = correctedStartingPointPos - actualStartingPointPos;
@@ -134,8 +128,8 @@ class Patches
 
             if (IsShiftDown())
             {
-                var actualStartingPointPos = cursor + AreaSnapTools.startingPointOffset;
-                var diff = actualStartingPointPos - AreaSnapTools.startingPoint;
+                var actualStartingPointPos = cursor + startingPointOffset;
+                var diff = actualStartingPointPos - startingPoint;
                 if (diff.X.Abs() > diff.Y.Abs())
                 {
                     diff = diff.SetY(0);
@@ -145,46 +139,10 @@ class Patches
                     diff = diff.SetX(0);
                 }
 
-                var correctedStartingPointPos = AreaSnapTools.startingPoint + diff;
+                var correctedStartingPointPos = startingPoint + diff;
                 var correction = correctedStartingPointPos - actualStartingPointPos;
                 cursor += correction;
             }
         }
     }
-    // [HarmonyPatchCategory(AreaSnapTools.HARMONY_PATCH_CATEGORY)]
-    // [HarmonyPatch("Mafi.Unity.Ui.Controllers.PolygonEditState", "updateTranslatePolygon")]
-    // public class PatchPolygonEditState_updateTranslatePolygon
-    // {
-    //     static void Prefix(
-    //         ref Vector2f cursor
-    //     )
-    //     {
-    //         if (IsCtrlDown())
-    //         {
-    //             var actualStartingPointPos = cursor + AreaSnapTools.startingPointOffset;
-    //             var correctedStartingPointPos = new Vector2f(actualStartingPointPos.X.RoundToIntMultipleOf(4),
-    //                 actualStartingPointPos.Y.RoundToIntMultipleOf(4));
-    //             var correction = correctedStartingPointPos - actualStartingPointPos;
-    //             cursor += correction;
-    //         }
-    //
-    //         if (IsShiftDown())
-    //         {
-    //             var actualStartingPointPos = cursor + AreaSnapTools.startingPointOffset;
-    //             var diff = actualStartingPointPos - AreaSnapTools.startingPoint;
-    //             if (diff.X.Abs() > diff.Y.Abs())
-    //             {
-    //                 diff = diff.SetY(0);
-    //             }
-    //             else
-    //             {
-    //                 diff = diff.SetX(0);
-    //             }
-    //
-    //             var correctedStartingPointPos = AreaSnapTools.startingPoint + diff;
-    //             var correction = correctedStartingPointPos - actualStartingPointPos;
-    //             cursor += correction;
-    //         }
-    //     }
-    // }
 }
