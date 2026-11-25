@@ -57,17 +57,11 @@ class Patches
                     }
                     
                     startingPoint = ___Polygon[startingPointIndex];
-                    Log.Info("AreaSnapTools: Selecting starting vertex. Cursor: " + cursor);
                     foreach (var v in getVertices(___Polygon))
                     {
                         if (v.DistanceSqrTo(cursor) < startingPoint.DistanceSqrTo(cursor))
                         {
                             startingPoint = v;
-                            Log.Info("AreaSnapTools: Selecting starting vertex. v = " + v + "; startingPoint = " + startingPoint + " UPDATED");
-                        }
-                        else
-                        {
-                            Log.Info("AreaSnapTools: Selecting starting vertex. v = " + v + "; startingPoint = " + startingPoint);
                         }
                     }
                     startingPointOffset = startingPoint - cursor;
