@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using Mafi;
+using Mafi.Collections.ReadonlyCollections;
 using Mafi.Numerics;
-using Mafi.Unity.InputControl;
 using UnityEngine;
 
 namespace AreaSnapTools;
@@ -29,10 +29,13 @@ class Patches
     public class PatchPolygonEditState_updateIdle
     {
         private static readonly MethodInfo ActiveVertexIndexProprtyGetter =
-            AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveVertexIndex");
+            AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:HoverVertexIndex");
 
         private static readonly MethodInfo ActiveEdgeIndexProprtyGetter =
-            AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:ActiveEdgeIndex");
+            AccessTools.PropertyGetter("Mafi.Unity.Ui.Controllers.PolygonEditState:HoverEdgeIndex");
+
+        private static readonly MethodInfo VerticesPropertyGetter =
+            AccessTools.PropertyGetter("Mafi.Numerics.Polygon2fMutable:Vertices");
 
         static void Postfix(
             bool primaryDown,
@@ -52,8 +55,21 @@ class Patches
                         if (startingPointIndex < 0)
                             startingPointIndex = 0;
                     }
-
+                    
                     startingPoint = ___Polygon[startingPointIndex];
+                    Log.Info("AreaSnapTools: Selecting starting vertex. Cursor: " + cursor);
+                    foreach (var v in getVertices(___Polygon))
+                    {
+                        if (v.DistanceSqrTo(cursor) < startingPoint.DistanceSqrTo(cursor))
+                        {
+                            startingPoint = v;
+                            Log.Info("AreaSnapTools: Selecting starting vertex. v = " + v + "; startingPoint = " + startingPoint + " UPDATED");
+                        }
+                        else
+                        {
+                            Log.Info("AreaSnapTools: Selecting starting vertex. v = " + v + "; startingPoint = " + startingPoint);
+                        }
+                    }
                     startingPointOffset = startingPoint - cursor;
                 }
                 else
@@ -71,6 +87,11 @@ class Patches
         private static int getActiveVertexIndex(object o)
         {
             return (int)ActiveVertexIndexProprtyGetter.Invoke(o, []);
+        }
+        
+        private static ReadOnlyArraySlice<Vector2f> getVertices(object o)
+        {
+            return (ReadOnlyArraySlice<Vector2f>)VerticesPropertyGetter.Invoke(o, []);
         }
 
         private static int getActiveEdgeIndex(object o)
