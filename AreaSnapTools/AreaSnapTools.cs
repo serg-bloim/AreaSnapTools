@@ -13,7 +13,6 @@ public sealed class AreaSnapTools : IMod
 {
     public const string HARMONY_PATCH_CATEGORY = "AreaSnapTools";
     private readonly Harmony harm = new("AreaSnapTools");
-    public static ShortcutsManager shortcutsManager;
 
     // Mod constructor will be called on mod loading.
     public AreaSnapTools(ModManifest manifest) : base()
@@ -49,7 +48,6 @@ public sealed class AreaSnapTools : IMod
 
     public void Initialize(DependencyResolver resolver, bool gameWasLoaded)
     {
-        shortcutsManager = resolver.Resolve<ShortcutsManager>();
     }
 
     public void MigrateJsonConfig(VersionSlim savedVersion, Dict<string, object> savedValues)

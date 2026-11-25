@@ -14,20 +14,14 @@ class Patches
     private static Vector2f startingPoint;
     private static Vector2f startingPointOffset;
 
-    private static KeyBindings anyShiftKey = KeyBindings.FromKeys(KbCategory.Tools, ShortcutMode.Game,
-        KeyCode.LeftShift, KeyCode.RightShift);
-
-    private static KeyBindings anyCtrlKey = KeyBindings.FromKeys(KbCategory.Tools, ShortcutMode.Game,
-        KeyCode.LeftControl, KeyCode.RightControl);
-
     private static bool IsShiftDown()
     {
-        return AreaSnapTools.shortcutsManager.IsOn(anyShiftKey);
+        return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
     }
 
     private static bool IsCtrlDown()
     {
-        return AreaSnapTools.shortcutsManager.IsOn(anyCtrlKey);
+        return Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
     }
 
     [HarmonyPatchCategory(AreaSnapTools.HARMONY_PATCH_CATEGORY)]
